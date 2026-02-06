@@ -18,7 +18,7 @@ def main():
     # Step 2: Basic Check
     if df is not None:
         print("\nData Preview (First 6000 rows):")
-        print(df.head(6000))
+        print(df.head(60))
         
         # Step 3: Clean Data
         df = clean_data(df)
