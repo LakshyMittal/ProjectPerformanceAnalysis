@@ -1,8 +1,4 @@
 team_id,repo_url
-DS-01,https://github.com/LakshyMittal/Gemini-Powered-GST-Summary-Generator-.git
-MS-02,https://github.com/MuhammedSahil22/Projectz.git
-JA-03,https://github.com/Just-Aman-C/Project_Mental_Health_Risk_Prediction.git
-LM-04,https://github.com/LakshyMittal/quantitative-trading-strategy-ml
-DS-05,https://github.com/LakshyMittal/ai-code-review.git
-MS-06,https://github.com/Dhruvsoni4125/Medical-image-disease-detection-system
-FN-07,https://github.com/LakshyMittal/ProjectPerformanceAnalysis.git
+LMC-05,https://github.com/LakshyMittal/ai-code-review.git
+DSM-06,https://github.com/Dhruvsoni4125/Medical-image-disease-detection-system
+LMP-07,https://github.com/LakshyMittal/ProjectPerformanceAnalysis.git

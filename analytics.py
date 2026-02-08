@@ -18,8 +18,8 @@ def calculate_scores(teams_data):
         norm_loc = team['lines_added'] / max_loc
         
         # 3. Calculate Base Score
-        # Weights: 30% Commits, 60% LOC
-        base_score = (norm_commits * 0.3) + (norm_loc * 0.6)
+        # Weights: 30% Commits, 70% LOC (Sum = 1.0)
+        base_score = (norm_commits * 0.3) + (norm_loc * 0.7)
         
         # 4. Consistency Bonus
         # Bonus if work is spread across at least 3 separate days

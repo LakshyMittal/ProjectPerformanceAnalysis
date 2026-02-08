@@ -83,10 +83,10 @@ if st.button("🚀 Run Analysis"):
                     st.plotly_chart(fig_bar, use_container_width=True)
                     
                 with col_chart2:
-                    st.subheader("Activity Share by Team")
-                    fig_pie = px.pie(df_results, values='total_commits', names='team_id', 
+                    st.subheader("Code Volume Share (LOC)")
+                    fig_pie = px.pie(df_results, values='lines_added', names='team_id', 
                                      color='team_id', hole=0.4,
-                                     title="Commit Contribution by Team")
+                                     title="Lines of Code Contribution")
                     fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                     st.plotly_chart(fig_pie, use_container_width=True)
                 
