@@ -35,6 +35,7 @@ def calculate_scores(teams_data):
         if progress_pct >= 70:
             status = "On Track"
         elif progress_pct >= 30:
+            
             status = "Lagging"
         else:
             status = "Inactive"
@@ -51,6 +52,7 @@ def calculate_scores(teams_data):
         scored_teams.append(team_with_score)
         
     # Sort by progress (Highest first)
+    
     scored_teams.sort(key=lambda x: x['progress_pct'], reverse=True)
     
     return scored_teams
