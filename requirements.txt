@@ -3,3 +3,6 @@ streamlit
 plotly
 httpx
 python-dotenv
+fastapi
+uvicorn[standard]
+python-multipart
