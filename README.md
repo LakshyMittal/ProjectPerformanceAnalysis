@@ -1,92 +1,198 @@
-🚀 Student Project Performance Analysis Dashboard
+# Student Project Performance Analysis Dashboard
 
-This is a Streamlit-based dashboard built to help instructors track and evaluate student GitHub projects efficiently.
+A Streamlit-based analytics platform designed to help instructors systematically evaluate and monitor student GitHub projects. The system aggregates repository-level metrics, computes performance scores, and presents actionable insights through an interactive dashboard and downloadable reports.
 
-It takes repository data from a CSV file, fetches live GitHub stats, calculates performance scores, and presents everything in a clean dashboard along with downloadable PDF reports.
+---
 
-🔑 Features
-📄 Upload repos using CSV (team_id, repo_url)
-⚡ Fast GitHub data fetching (async + cached)
-📊 Automatic scoring system for performance
-📈 Dashboard with KPIs and visual insights
-🔍 Filterable data explorer + CSV export
-📑 Auto-generated PDF report per team
-📦 Bulk download reports as ZIP
-🧠 Smart fallback if GitHub stats are delayed
-📁 Project Structure
+## Overview
+
+This application ingests repository data via a structured CSV input, retrieves live GitHub metrics using asynchronous API calls, and transforms raw activity data into meaningful performance indicators.
+
+It is designed for academic environments where instructors need a **scalable, objective, and data-driven evaluation system**.
+
+---
+
+## Key Features
+
+* **Repository Ingestion**
+
+  * CSV-based input (`team_id`, `repo_url`)
+  * Supports batch processing of multiple teams
+
+* **GitHub Data Integration**
+
+  * Asynchronous API calls for improved performance
+  * Fetches commits, contributors, language distribution, and activity trends
+  * Built-in caching (1 hour) with refresh support
+
+* **Performance Scoring Engine**
+
+  * Weighted scoring model based on commits and code contribution
+  * Consistency bonus for sustained activity
+  * Automatic classification into performance categories
+
+* **Interactive Dashboard**
+
+  * KPI summaries for quick evaluation
+  * Visual insights (activity trends, score distribution)
+  * Clean and minimal UI for academic use
+
+* **Data Exploration**
+
+  * Filterable dataset view
+  * Export results as CSV
+
+* **Reporting System**
+
+  * Auto-generated one-page PDF report per team
+  * Bulk export as ZIP archive
+
+* **Resilient Data Handling**
+
+  * Intelligent fallback mechanisms when GitHub statistics are delayed or unavailable
+
+---
+
+## Project Structure
+
+```id="projstruct"
 .
-├── app.py
-├── analytics.py
-├── github_connector.py
-├── pdf_generator.py
-├── utils.py
+├── app.py                    # Streamlit entry point
+├── analytics.py              # Scoring and metric calculations
+├── github_connector.py       # GitHub API integration
+├── pdf_generator.py          # Report generation
+├── utils.py                  # Helper utilities
 ├── requirements.txt
 ├── .streamlit/
 │   └── config.toml
 └── ProjectPerformanceAnalysis/
     └── data/
-        └── input_repos.csv
-⚙️ Setup
-1. Install dependencies
+        └── input_repos.csv   # Input dataset
+```
+
+---
+
+## Installation
+
+### 1. Clone the repository
+
+```bash id="clonecmd"
+git clone <your-repository-url>
+cd <project-folder>
+```
+
+### 2. Install dependencies
+
+```bash id="installcmd"
 pip install -r requirements.txt
-2. Create .env file
+```
 
-Add your GitHub token:
+### 3. Configure environment variables
 
+Create a `.env` file in the root directory:
+
+```id="envfile"
 GITHUB_TOKEN=your_github_token_here
-Public repos → no special permissions needed
-Private repos → repo access required
-3. Add repository data
+```
 
-Edit this file:
+> Note:
+>
+> * Public repositories do not require additional scopes
+> * Private repositories require `repo` access
 
+---
+
+## Input Format
+
+File location:
+
+```id="inputpath"
 ProjectPerformanceAnalysis/data/input_repos.csv
+```
 
 Example:
 
+```csv id="csvexample"
 team_id,repo_url
 TR-01,https://github.com/freeCodeCamp/freeCodeCamp
 TR-02,https://github.com/kamranahmedse/developer-roadmap
-▶️ Run the App
+```
+
+---
+
+## Running the Application
+
+```bash id="runapp"
 streamlit run app.py
-📊 Scoring Logic (Simple)
-Commits → 30%
-Code Contribution (LOC) → 70%
-Consistency Bonus → +10% (if active ≥ 3 days)
-📌 Status Categories
-🟢 On Track → Score ≥ 70%
-🟡 Lagging → Score ≥ 30%
-🔴 Inactive → Score < 30%
-⚠️ Smart Fallback System
+```
 
-If GitHub stats are not ready (common issue):
+---
 
-The system uses:
+## Scoring Methodology
 
-Contributor commit counts
-Language-based code size
-Recent activity trends
-📑 PDF Reports Include
-Team details + date
-KPI summary
-Score visualization
-Weekly activity chart
-Key metrics (efficiency, impact, etc.)
-Auto-generated summary
-🚧 Common Issues
-Problem	Reason
-Stats show 202	GitHub still processing
-LOC is zero	Delay in GitHub stats
-Rate limit hit	Too many API calls
-📜 License
+The performance score is computed using a weighted model:
 
-This project is intended for academic and educational use.
+* **Commit Activity** → 30%
+* **Code Contribution (Lines of Code)** → 70%
+* **Consistency Bonus** → +10% (if active on ≥ 3 days)
 
-💡 (Optional Improvement)
+---
 
-If you want to upgrade this further later:
+## Performance Classification
 
-Add leaderboard ranking
-Add student comparison view
-Add real-time refresh button UI
-Add instructor comments storage
+| Category | Score Range |
+| -------- | ----------- |
+| On Track | ≥ 70%       |
+| Lagging  | 30% – 69%   |
+| Inactive | < 30%       |
+
+---
+
+## Fallback Strategy
+
+In cases where GitHub returns incomplete or delayed statistics (e.g., HTTP 202):
+
+The system derives approximate metrics using:
+
+* Contributor commit counts
+* Language-based repository size
+* Recent commit activity patterns
+
+---
+
+## Report Contents
+
+Each generated PDF report includes:
+
+* Team identification and timestamp
+* KPI summary
+* Score visualization
+* Weekly activity trends
+* Derived performance metrics (efficiency, contribution impact)
+* Auto-generated evaluation summary
+
+---
+
+## Known Limitations
+
+* GitHub repository statistics may be delayed due to background computation
+* Large batch requests may encounter API rate limits
+* LOC metrics depend on GitHub’s internal processing availability
+
+---
+
+## License
+
+This project is intended for **academic and educational use only**.
+
+---
+
+## Future Enhancements
+
+* Leaderboard and ranking system
+* Comparative analytics across teams
+* Real-time refresh controls
+* Instructor feedback and annotation system
+* Persistent data storage for historical tracking
+
+---
