@@ -1,26 +1,19 @@
-Hey, totally—here’s a complete README you can copy‑paste as‑is.
+🚀 Student Project Performance Analysis Dashboard
 
-```markdown
-# Student Project Performance Analysis Dashboard
+This is a Streamlit-based dashboard built to help instructors track and evaluate student GitHub projects efficiently.
 
-A Streamlit dashboard for instructors to monitor and grade student GitHub projects. It reads team repositories from a CSV, pulls live GitHub metrics, calculates performance scores, and generates visual dashboards and PDF reports.
+It takes repository data from a CSV file, fetches live GitHub stats, calculates performance scores, and presents everything in a clean dashboard along with downloadable PDF reports.
 
----
-
-## Features
-- CSV‑driven repo input (`team_id`, `repo_url`)
-- Async GitHub API fetch (repo info, contributors, commit activity, languages)
-- Caching for 1 hour with manual refresh
-- Scoring + status classification (On Track / Lagging / Inactive)
-- Executive dashboard with KPI cards + charts
-- Data explorer with filters + CSV export
-- One‑page PDF report per team + bulk ZIP download
-- Smart fallbacks when GitHub stats are still computing
-
----
-
-## Project Structure
-```
+🔑 Features
+📄 Upload repos using CSV (team_id, repo_url)
+⚡ Fast GitHub data fetching (async + cached)
+📊 Automatic scoring system for performance
+📈 Dashboard with KPIs and visual insights
+🔍 Filterable data explorer + CSV export
+📑 Auto-generated PDF report per team
+📦 Bulk download reports as ZIP
+🧠 Smart fallback if GitHub stats are delayed
+📁 Project Structure
 .
 ├── app.py
 ├── analytics.py
@@ -33,82 +26,67 @@ A Streamlit dashboard for instructors to monitor and grade student GitHub projec
 └── ProjectPerformanceAnalysis/
     └── data/
         └── input_repos.csv
-```
-
----
-
-## Setup
-
-### 1. Install dependencies
-```bash
+⚙️ Setup
+1. Install dependencies
 pip install -r requirements.txt
-```
+2. Create .env file
 
-### 2. Create `.env`
-Create a `.env` file in the project root:
-```
+Add your GitHub token:
+
 GITHUB_TOKEN=your_github_token_here
-```
+Public repos → no special permissions needed
+Private repos → repo access required
+3. Add repository data
 
-> For public repos, no special scopes are required.  
-> For private repos, you need `repo` scope.
+Edit this file:
 
-### 3. Add repo list
-Edit the CSV file:
-`ProjectPerformanceAnalysis/data/input_repos.csv`
+ProjectPerformanceAnalysis/data/input_repos.csv
 
 Example:
-```
+
 team_id,repo_url
 TR-01,https://github.com/freeCodeCamp/freeCodeCamp
 TR-02,https://github.com/kamranahmedse/developer-roadmap
-```
-
----
-
-## Run the App
-```bash
+▶️ Run the App
 streamlit run app.py
-```
+📊 Scoring Logic (Simple)
+Commits → 30%
+Code Contribution (LOC) → 70%
+Consistency Bonus → +10% (if active ≥ 3 days)
+📌 Status Categories
+🟢 On Track → Score ≥ 70%
+🟡 Lagging → Score ≥ 30%
+🔴 Inactive → Score < 30%
+⚠️ Smart Fallback System
 
----
+If GitHub stats are not ready (common issue):
 
-## How Scoring Works (Summary)
+The system uses:
 
-- **Commits (30%)**: normalized against class max  
-- **LOC Added (70%)**: normalized against class max  
-- **Consistency Bonus**: +10% if active days ≥ 3  
-- **Status**
-  - On Track: score ≥ 70%
-  - Lagging: score ≥ 30%
-  - Inactive: score < 30%
+Contributor commit counts
+Language-based code size
+Recent activity trends
+📑 PDF Reports Include
+Team details + date
+KPI summary
+Score visualization
+Weekly activity chart
+Key metrics (efficiency, impact, etc.)
+Auto-generated summary
+🚧 Common Issues
+Problem	Reason
+Stats show 202	GitHub still processing
+LOC is zero	Delay in GitHub stats
+Rate limit hit	Too many API calls
+📜 License
 
-If GitHub’s stats are still computing, the system falls back to:
-- commit counts from contributors
-- code size from language bytes
-- recent commits for activity trend
+This project is intended for academic and educational use.
 
----
+💡 (Optional Improvement)
 
-## PDF Reports
-Each PDF includes:
-- Title + Team + Date
-- KPI summary row
-- Donut score + weekly activity chart
-- Metrics table (net impact, efficiency ratio, gini, bus factor)
-- Summary paragraph + instructor notes
+If you want to upgrade this further later:
 
----
-
-## Common Issues
-- **Stats returning 202**: GitHub still computing; retry or use fallback data.
-- **Zeros for LOC**: usually GitHub stats delay, not a bug.
-- **Rate limits**: reduce repo count or wait before retry.
-
----
-
-## License
-For academic and educational use.
-```
-
-If you want the README customized (branding, screenshots, badges), tell me and I’ll refine it.
+Add leaderboard ranking
+Add student comparison view
+Add real-time refresh button UI
+Add instructor comments storage
