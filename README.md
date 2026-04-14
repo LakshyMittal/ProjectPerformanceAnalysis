@@ -1,296 +1,197 @@
+<div align="center">
+
+<img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+<img src="https://img.shields.io/badge/Streamlit-1.56.0-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white"/>
+<img src="https://img.shields.io/badge/GitHub_API-v3-181717?style=for-the-badge&logo=github&logoColor=white"/>
+<img src="https://img.shields.io/badge/Tests-pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white"/>
+<img src="https://img.shields.io/badge/License-Academic-green?style=for-the-badge"/>
+
 # Student Project Performance Analysis Dashboard
 
-<<<<<<< HEAD
-Streamlit application for faculty to evaluate student GitHub repositories using consistent metrics, visual dashboards, and downloadable PDF reports.
+**A real-time GitHub analytics platform for evaluating, monitoring, and reporting student project performance at scale.**
 
-## Highlights
+[Features](#-features) · [Setup](#️-setup) · [Scoring](#-scoring-methodology) · [Tech Stack](#-tech-stack)
 
-- Asynchronous GitHub data collection with retry and fallback handling
-- Absolute-baseline scoring (not class-relative ranking)
-- Executive dashboard with leaderboard and contribution charts
-- Data Explorer with filters, sparklines, CSV export, and per-team PDF
-- Bulk ZIP report generation on demand
-- Built-in safeguards for rate limits and tiny datasets
-
-## Tech Stack
-
-- Python
-- Streamlit
-- Pandas
-- Plotly
-- httpx
-- ReportLab
-
-## Project Layout
-
-- `app.py` - Streamlit UI and orchestration
-- `github_connector.py` - GitHub API integration and fallbacks
-- `analytics.py` - Scoring logic
-- `pdf_generator.py` - Team PDF and ZIP report generation
-- `utils.py` - URL parsing and normalization
-- `ProjectPerformanceAnalysis/data/input_repos.csv` - Input repositories
-
-## Setup
-
-1. Create and activate a virtual environment.
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Create `.env` from `.env.example`:
-   - `GITHUB_TOKEN` is required
-4. Run:
-   ```bash
-   streamlit run app.py
-   ```
-
-## Input CSV Format
-
-`ProjectPerformanceAnalysis/data/input_repos.csv` must contain:
-
-```csv
-=======
-A Streamlit-based analytics platform designed to help instructors systematically evaluate and monitor student GitHub projects. The system aggregates repository-level metrics, computes performance scores, and presents actionable insights through an interactive dashboard and downloadable reports.
+</div>
 
 ---
 
 ## Overview
 
-This application ingests repository data via a structured CSV input, retrieves live GitHub metrics using asynchronous API calls, and transforms raw activity data into meaningful performance indicators.
+This system provides a **data-driven alternative to subjective project evaluation**. It integrates with the GitHub API to extract repository activity, transforms it into structured metrics, and computes performance scores using a standardized model.
 
-It is designed for academic environments where instructors need a **scalable, objective, and data-driven evaluation system**.
+Designed specifically for **academic environments**, it enables instructors to assess multiple teams consistently, efficiently, and objectively.
 
 ---
 
-## Key Features
+## Features
 
-* **Repository Ingestion**
+### GitHub Data Integration
 
-  * CSV-based input (`team_id`, `repo_url`)
-  * Supports batch processing of multiple teams
+* Asynchronous API requests for parallel data fetching
+* Handles `202 Accepted` responses with retry + backoff
+* Multi-level fallback system (stats → contributors → commits)
+* Built-in caching to reduce API load
 
-* **GitHub Data Integration**
+### Scoring Engine
 
-  * Asynchronous API calls for improved performance
-  * Fetches commits, contributors, language distribution, and activity trends
-  * Built-in caching (1 hour) with refresh support
+* Absolute baseline scoring (independent of class size)
+* Weighted evaluation:
 
-* **Performance Scoring Engine**
+  * Commits → 30%
+  * LOC → 50%
+  * Active Days → 20%
+* Consistency multiplier for sustained activity
+* Gini coefficient for contribution fairness
 
-  * Weighted scoring model based on commits and code contribution
-  * Consistency bonus for sustained activity
-  * Automatic classification into performance categories
+### Dashboard & Analytics
 
-* **Interactive Dashboard**
+* KPI overview (class average, top performer, active teams)
+* Team ranking with performance classification
+* Activity trend visualization
+* Contribution distribution charts
 
-  * KPI summaries for quick evaluation
-  * Visual insights (activity trends, score distribution)
-  * Clean and minimal UI for academic use
+### Reporting
 
-* **Data Exploration**
-
-  * Filterable dataset view
-  * Export results as CSV
-
-* **Reporting System**
-
-  * Auto-generated one-page PDF report per team
-  * Bulk export as ZIP archive
-
-* **Resilient Data Handling**
-
-  * Intelligent fallback mechanisms when GitHub statistics are delayed or unavailable
+* One-click PDF report generation per team
+* Bulk export (ZIP)
+* Automated evaluation summaries
 
 ---
 
 ## Project Structure
 
-```id="projstruct"
-.
-├── app.py                    # Streamlit entry point
-├── analytics.py              # Scoring and metric calculations
-├── github_connector.py       # GitHub API integration
-├── pdf_generator.py          # Report generation
-├── utils.py                  # Helper utilities
+```id="projstruct2"
+ProjectPerformanceAnalysis/
+│
+├── app.py
+├── analytics.py
+├── github_connector.py
+├── pdf_generator.py
+├── utils.py
+│
 ├── requirements.txt
+├── .env.example
+│
+├── tests/
+│   ├── test_analytics.py
+│   └── test_utils.py
+│
 ├── .streamlit/
 │   └── config.toml
+│
 └── ProjectPerformanceAnalysis/
     └── data/
-        └── input_repos.csv   # Input dataset
+        └── input_repos.csv
 ```
 
 ---
 
-## Installation
+## Setup
 
-### 1. Clone the repository
+### 1. Clone repository
 
-```bash id="clonecmd"
-git clone <your-repository-url>
-cd <project-folder>
+```bash id="clone2"
+git clone https://github.com/your-username/ProjectPerformanceAnalysis.git
+cd ProjectPerformanceAnalysis
 ```
 
 ### 2. Install dependencies
 
-```bash id="installcmd"
+```bash id="install2"
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment variables
+### 3. Configure environment
 
-Create a `.env` file in the root directory:
-
-```id="envfile"
-GITHUB_TOKEN=your_github_token_here
+```env id="env2"
+GITHUB_TOKEN=your_token_here
 ```
 
-> Note:
->
-> * Public repositories do not require additional scopes
-> * Private repositories require `repo` access
+> Public repos → no scope required
+> Private repos → `repo` scope required
 
----
+### 4. Run application
 
-## Input Format
-
-File location:
-
-```id="inputpath"
-ProjectPerformanceAnalysis/data/input_repos.csv
-```
-
-Example:
-
-```csv id="csvexample"
->>>>>>> 1ff8e4feb00d77cb94dc4adbab71db172e4ba18e
-team_id,repo_url
-TR-01,https://github.com/freeCodeCamp/freeCodeCamp
-TR-02,https://github.com/kamranahmedse/developer-roadmap
-```
-
-<<<<<<< HEAD
-## Scoring Methodology
-
-Absolute targets:
-
-- Commits target: `100`
-- LOC added target: `5000`
-- Active days target: `20`
-- Fallback code-bytes target: `250000` (when LOC stats are unavailable)
-
-Weights:
-
-- Commits: `30%`
-- LOC/Code bytes: `50%`
-- Active days: `20%`
-
-Consistency bonus:
-
-- `1.1x` multiplier when active days >= `3`
-
-Status thresholds:
-
-- On Track: `>= 70%`
-- Lagging: `>= 30%`
-- Inactive: `< 30%`
-
-## Reliability Notes
-
-- GitHub stats endpoints can return `202 Accepted` while still computing.
-- The app applies bounded retries and falls back to contributor/commit endpoints.
-- Sidebar warns when loaded repository count is below 3.
-- UI warns when API rate limit remaining is low.
-
-## Testing
-
-Run:
-
-```bash
-pytest
-```
-
-Current tests cover:
-
-- URL parsing and normalization (`utils.py`)
-- Absolute scoring behavior and thresholds (`analytics.py`)
-=======
----
-
-## Running the Application
-
-```bash id="runapp"
+```bash id="run2"
 streamlit run app.py
 ```
 
 ---
 
+## Input Format
+
+```csv id="csv2"
+team_id,repo_url
+TR-01,https://github.com/org/project-alpha
+TR-02,https://github.com/org/project-beta
+```
+
+---
+
 ## Scoring Methodology
 
-The performance score is computed using a weighted model:
+```
+Final Score = (Commits × 0.30) + (LOC × 0.50) + (Active Days × 0.20)
+            × Consistency Multiplier
+```
 
-* **Commit Activity** → 30%
-* **Code Contribution (Lines of Code)** → 70%
-* **Consistency Bonus** → +10% (if active on ≥ 3 days)
+### Performance Categories
 
----
-
-## Performance Classification
-
-| Category | Score Range |
-| -------- | ----------- |
-| On Track | ≥ 70%       |
-| Lagging  | 30% – 69%   |
-| Inactive | < 30%       |
+| Category | Score  |
+| -------- | ------ |
+| On Track | ≥ 70%  |
+| Lagging  | 30–69% |
+| Inactive | < 30%  |
 
 ---
 
-## Fallback Strategy
+## Tech Stack
 
-In cases where GitHub returns incomplete or delayed statistics (e.g., HTTP 202):
-
-The system derives approximate metrics using:
-
-* Contributor commit counts
-* Language-based repository size
-* Recent commit activity patterns
-
----
-
-## Report Contents
-
-Each generated PDF report includes:
-
-* Team identification and timestamp
-* KPI summary
-* Score visualization
-* Weekly activity trends
-* Derived performance metrics (efficiency, contribution impact)
-* Auto-generated evaluation summary
+| Technology | Purpose         |
+| ---------- | --------------- |
+| Streamlit  | UI & dashboard  |
+| Pandas     | Data processing |
+| Plotly     | Visualization   |
+| httpx      | Async API calls |
+| ReportLab  | PDF generation  |
+| pytest     | Testing         |
 
 ---
 
-## Known Limitations
+## Limitations
 
-* GitHub repository statistics may be delayed due to background computation
-* Large batch requests may encounter API rate limits
-* LOC metrics depend on GitHub’s internal processing availability
+* GitHub stats endpoints may be delayed
+* Large datasets may approach rate limits
+* LOC depends on GitHub internal computation
+
+---
+
+## Roadmap
+
+* Persistent storage (history tracking)
+* Comparative analytics
+* Instructor feedback system
+* Configurable scoring weights
+* Email report delivery
+
+---
+
+## Author
+
+**Lakshy Mittal**
+BCA (AI/ML) — Manav Rachna International Institute of Research and Studies
 
 ---
 
 ## License
 
-This project is intended for **academic and educational use only**.
+Academic and educational use only
 
 ---
 
-## Future Enhancements
+<div align="center">
 
-* Leaderboard and ranking system
-* Comparative analytics across teams
-* Real-time refresh controls
-* Instructor feedback and annotation system
-* Persistent data storage for historical tracking
+Built with Python, Streamlit, and GitHub API
 
----
->>>>>>> 1ff8e4feb00d77cb94dc4adbab71db172e4ba18e
+</div>
