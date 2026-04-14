@@ -9,16 +9,22 @@ from utils import parse_github_url
 
 load_dotenv()
 
+STATS_RETRY_ATTEMPTS = max(1, int(os.getenv("GITHUB_STATS_RETRIES", "3")))
+STATS_RETRY_BASE_SEC = max(0.1, float(os.getenv("GITHUB_STATS_BACKOFF_SEC", "1.0")))
+STATS_MAX_WAIT_SEC = max(0.5, float(os.getenv("GITHUB_STATS_MAX_WAIT_SEC", "8.0")))
+
 async def fetch_endpoint_with_retry(
     client: httpx.AsyncClient,
     url: str,
     headers: Dict[str, str],
     label: str,
-    attempts: int = 8,
+    attempts: Optional[int] = None,
 ) -> Tuple[Optional[Any], Optional[str]]:
     """Helper to fetch GitHub stats endpoints which may return 202 Accepted while computing."""
+    attempts = attempts or STATS_RETRY_ATTEMPTS
     last_status = None
     last_message = ""
+    total_wait = 0.0
 
     for attempt in range(attempts):
         try:
@@ -40,7 +46,13 @@ async def fetch_endpoint_with_retry(
             last_message = resp.text[:120]
 
         if resp.status_code == 202:
-            await asyncio.sleep(min(2 * (attempt + 1), 10))
+            if attempt >= attempts - 1:
+                break
+            delay = min(STATS_RETRY_BASE_SEC * (2 ** attempt), 3.0)
+            if total_wait + delay > STATS_MAX_WAIT_SEC:
+                break
+            await asyncio.sleep(delay)
+            total_wait += delay
             continue
 
         if resp.status_code in (403, 429):
@@ -56,7 +68,7 @@ async def fetch_endpoint_with_retry(
         return None, f"{label} unavailable ({resp.status_code}: {last_message or 'API error'})"
 
     if last_status == 202:
-        return None, f"{label} still computing after {attempts} attempts"
+        return None, f"{label} still computing (attempted {attempts} retries, waited {total_wait:.1f}s)"
     return None, f"{label} unavailable ({last_status}: {last_message or 'API error'})"
 
 
@@ -176,6 +188,8 @@ async def fetch_repo_details(client: httpx.AsyncClient, repo_url: str) -> Dict[s
         return {"error": f"API Error {repo_resp.status_code}", "url": repo_url}
     
     repo_data = repo_resp.json()
+    rate_limit_remaining = repo_resp.headers.get("X-RateLimit-Remaining")
+    rate_limit_reset = repo_resp.headers.get("X-RateLimit-Reset")
     
     # 2. Concurrently fetch the three detail endpoints for speed
     contributors_url = f"{base_url}/stats/contributors"
@@ -275,10 +289,20 @@ async def fetch_repo_details(client: httpx.AsyncClient, repo_url: str) -> Dict[s
         stats_warnings.append(f"Languages unavailable ({languages_resp.status_code})")
 
     last_pushed_raw = repo_data.get("pushed_at")
-    last_pushed = datetime.strptime(last_pushed_raw, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d") if last_pushed_raw else "N/A"
+    last_pushed = "N/A"
+    if last_pushed_raw:
+        try:
+            last_pushed = datetime.strptime(last_pushed_raw, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
+        except ValueError:
+            stats_warnings.append("Invalid pushed_at timestamp returned by GitHub")
+
+    # Use stable slug when CSV team_id is unavailable to avoid short-prefix collisions.
+    generated_team_id = f"{owner}/{repo}"
+    generated_team_slug = f"{owner}-{repo}"
 
     return {
-        "team_id": f"{owner[:2].upper()}-{repo[:2].upper()}",
+        "team_id": generated_team_id,
+        "team_slug": generated_team_slug,
         "repo_name": repo,
         "total_commits": total_commits,
         "lines_added": lines_added,
@@ -290,6 +314,8 @@ async def fetch_repo_details(client: httpx.AsyncClient, repo_url: str) -> Dict[s
         "primary_language": primary_language,
         "language_bytes": language_bytes,
         "code_bytes": code_bytes,
+        "rate_limit_remaining": int(rate_limit_remaining) if str(rate_limit_remaining).isdigit() else None,
+        "rate_limit_reset_epoch": int(rate_limit_reset) if str(rate_limit_reset).isdigit() else None,
         "stats_warnings": stats_warnings,
         "url": repo_url
     }

@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 .DS_Store
+*.log
+streamlit.out.log
+streamlit.err.log
+.pytest_cache/

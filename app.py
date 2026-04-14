@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import asyncio
+import json
 import httpx
 from datetime import datetime
 from pathlib import Path
@@ -53,6 +54,7 @@ NUMERIC_DEFAULTS = {
 }
 TEXT_DEFAULTS = {
     "team_id": "Unknown",
+    "team_slug": "team",
     "repo_name": "Unknown",
     "last_pushed": "N/A",
     "primary_language": "Unknown",
@@ -64,6 +66,11 @@ TEXT_DEFAULTS = {
 
 def _as_list(value):
     return value if isinstance(value, list) else []
+
+
+def sanitize_filename(value: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in str(value))
+    return safe.strip("_") or "team"
 
 
 def load_repos() -> tuple[pd.DataFrame, Path | None]:
@@ -96,12 +103,13 @@ def prepare_results_frame(scored_data: list[dict], repos_df: pd.DataFrame) -> pd
     for col, default in NUMERIC_DEFAULTS.items():
         if col not in df_results.columns:
             df_results[col] = default
-        df_results[col] = pd.to_numeric(df_results[col], errors="coerce").fillna(default)
+        df_results[col] = pd.to_numeric(df_results[col], errors="coerce")
 
     for col, default in TEXT_DEFAULTS.items():
         if col not in df_results.columns:
             df_results[col] = default
-        df_results[col] = df_results[col].fillna(default)
+
+    df_results = df_results.fillna({**NUMERIC_DEFAULTS, **TEXT_DEFAULTS})
 
     for col in ["weekly_activity", "stats_warnings"]:
         if col not in df_results.columns:
@@ -170,6 +178,8 @@ st.sidebar.info("Data is cached for 1 hour to optimize API usage.")
 st.sidebar.caption(f"Last System Load: {datetime.now().strftime('%H:%M:%S')}")
 if loaded_csv_path:
     st.sidebar.caption(f"Input CSV: {loaded_csv_path.relative_to(PROJECT_ROOT)}")
+if 0 < len(repos_df) < 3:
+    st.sidebar.warning("Only a few repositories are loaded (<3). Scores may be statistically unstable.")
 if st.sidebar.button("Refresh Data", width="stretch"):
     st.cache_data.clear()
     st.sidebar.success("Cache cleared. Run the analysis again.")
@@ -182,7 +192,8 @@ st.divider()
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_cached_data(repo_urls: tuple[str, ...]) -> list[dict]:
     async def _fetch_async():
-        sem = asyncio.Semaphore(2)  # Prevent hitting GitHub secondary rate limits
+        concurrency = min(12, max(4, len(repo_urls) // 5 or 4))
+        sem = asyncio.Semaphore(concurrency)
         async def _fetch_with_sem(url, client):
             async with sem:
                 return await fetch_repo_details(client, url)
@@ -190,6 +201,16 @@ def get_cached_data(repo_urls: tuple[str, ...]) -> list[dict]:
             tasks = [_fetch_with_sem(url, client) for url in repo_urls]
             return await asyncio.gather(*tasks)
     return asyncio.run(_fetch_async())
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_pdf_bytes(team_payload_json: str) -> bytes:
+    return generate_team_pdf(json.loads(team_payload_json))
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_zip_bytes(rows_json: str) -> bytes:
+    return generate_all_pdfs_zip(json.loads(rows_json))
 
 if st.button("🚀 Run Analysis", type="primary", width="stretch"):
     if repos_df.empty or "repo_url" not in repos_df.columns:
@@ -215,12 +236,19 @@ if st.button("🚀 Run Analysis", type="primary", width="stretch"):
             final_df = prepare_results_frame(scored_data, repos_df)
             report_rows = final_df.drop(columns=["url_norm"], errors="ignore").to_dict("records")
 
+            rate_values = [v for v in final_df.get("rate_limit_remaining", pd.Series(dtype=float)).tolist() if pd.notna(v)]
+            if rate_values and min(rate_values) < 120:
+                st.warning(
+                    f"GitHub rate limit is getting low (minimum remaining: {int(min(rate_values))}). "
+                    "Use fewer repositories or wait for reset."
+                )
+
             warning_rows = final_df[final_df["stats_warnings"].apply(bool)]
             if not warning_rows.empty:
                 with st.expander("GitHub stats warnings"):
-                    for _, row in warning_rows.iterrows():
-                        st.write(f"**{row['team_id']}**")
-                        for warning in row["stats_warnings"]:
+                    for row in warning_rows.itertuples(index=False):
+                        st.write(f"**{row.team_id}**")
+                        for warning in row.stats_warnings:
                             st.caption(warning)
 
             # --- TABS LAYOUT ---
@@ -240,14 +268,20 @@ if st.button("🚀 Run Analysis", type="primary", width="stretch"):
                 st.markdown("---")
                 col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
                 with col_dl2:
-                    zip_bytes = generate_all_pdfs_zip(report_rows)
-                    st.download_button(
-                        label="📦 Download All Reports as ZIP",
-                        data=zip_bytes,
-                        file_name=f"all_team_reports_{datetime.now().strftime('%Y%m%d')}.zip",
-                        mime="application/zip",
-                        width="stretch",
-                    )
+                    rows_json = json.dumps(report_rows, sort_keys=True, default=str)
+                    if st.button("Prepare ZIP Report", key="prepare_zip_report", width="stretch"):
+                        st.session_state["zip_rows_json"] = rows_json
+                    if st.session_state.get("zip_rows_json") == rows_json:
+                        zip_bytes = get_zip_bytes(rows_json)
+                        st.download_button(
+                            label="Download All Reports as ZIP",
+                            data=zip_bytes,
+                            file_name=f"all_team_reports_{datetime.now().strftime('%Y%m%d')}.zip",
+                            mime="application/zip",
+                            width="stretch",
+                        )
+                    else:
+                        st.caption("Click Prepare ZIP Report to generate the archive on demand.")
                 st.markdown("---")
 
                 c1, c2 = st.columns(2)
@@ -317,32 +351,63 @@ if st.button("🚀 Run Analysis", type="primary", width="stretch"):
 
                     csv = display_df.drop(columns=["url_norm"], errors="ignore").to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label="📥 Download Report as CSV",
+                        label="Download Report as CSV",
                         data=csv,
                         file_name=f"project_analysis_{datetime.now().strftime('%Y%m%d')}.csv",
                         mime="text/csv"
                     )
 
-                    # Individual Team PDF Generator
                     st.markdown("---")
-                    st.subheader("📄 Download Individual Team Report")
-                    selected_team_id = st.selectbox("Select a team to generate their PDF report:", options=final_df['team_id'].tolist(), index=0)
-                    selected_row = final_df[final_df['team_id'] == selected_team_id].iloc[0]
-                    team_dict = selected_row.to_dict()
-                    pdf_bytes = generate_team_pdf(team_dict)
-                    st.download_button(
-                        label=f"⬇️ Download {selected_team_id} Report PDF",
-                        data=pdf_bytes,
-                        file_name=f"{selected_team_id}_report_{datetime.now().strftime('%Y%m%d')}.pdf",
-                        mime="application/pdf",
+                    st.subheader("Team PDF Reports")
+                    page_size = 10
+                    total_rows = len(display_df)
+                    total_pages = max(1, (total_rows + page_size - 1) // page_size)
+                    selected_page = st.number_input(
+                        "PDF Page",
+                        min_value=1,
+                        max_value=total_pages,
+                        value=1,
+                        step=1,
+                        key="pdf_page",
                     )
+                    start_idx = (selected_page - 1) * page_size
+                    end_idx = min(start_idx + page_size, total_rows)
+                    page_df = display_df.iloc[start_idx:end_idx]
+
+                    header_cols = st.columns([2, 2, 2, 2])
+                    header_cols[0].write("Team")
+                    header_cols[1].write("Status")
+                    header_cols[2].write("Score")
+                    header_cols[3].write("PDF")
+
+                    for index, row in enumerate(page_df.itertuples(index=False), start=start_idx):
+                        row_cols = st.columns([2, 2, 2, 2])
+                        row_cols[0].write(str(getattr(row, "team_id", "")))
+                        row_cols[1].write(str(getattr(row, "status", "")))
+                        row_cols[2].write(f"{float(getattr(row, 'progress_pct', 0)):.1f}%")
+                        row_key = f"{index}_{getattr(row, 'team_id', 'team')}"
+                        prepare_key = f"prepare_pdf_{row_key}"
+                        state_key = f"ready_pdf_{row_key}"
+                        if row_cols[3].button("Prepare", key=prepare_key):
+                            st.session_state[state_key] = True
+                        if st.session_state.get(state_key):
+                            team_payload_json = json.dumps(row._asdict(), sort_keys=True, default=str)
+                            pdf_bytes = get_pdf_bytes(team_payload_json)
+                            row_cols[3].download_button(
+                                label="Download",
+                                data=pdf_bytes,
+                                file_name=f"{sanitize_filename(getattr(row, 'team_id', 'team'))}_report_{datetime.now().strftime('%Y%m%d')}.pdf",
+                                mime="application/pdf",
+                                key=f"pdf_{row_key}",
+                            )
 
             # -- TAB 3: Methodology --
             with tab3:
                 st.markdown("""
                 **1. Base Score Calculation**
-                - Commits (30%): Normalized against the class maximum.
-                - Lines of Code (70%): Normalized against the class maximum.
+                - Commits (30%): Normalized against an absolute baseline target.
+                - Lines of Code (50%): Normalized against an absolute baseline target.
+                - Active Days (20%): Normalized against an absolute baseline target.
 
                 **2. Consistency Bonus**
                 - Teams active for 3+ days receive a 1.1x multiplier.
@@ -353,6 +418,7 @@ if st.button("🚀 Run Analysis", type="primary", width="stretch"):
                 - 🔴 Inactive: Score < 30%
 
                 **Important note**
+                - Scoring uses absolute baselines (not class-relative ranking) to keep grading stable between cohorts.
                 - Commit and LOC metrics come from GitHub statistics endpoints. GitHub can return `202 Accepted`
                   while it computes those statistics, so the connector retries and then shows a warning if the
                   data is still unavailable.
